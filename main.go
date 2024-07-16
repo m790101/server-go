@@ -24,6 +24,7 @@ func main() {
 	mux.HandleFunc("/reset", apiCfg.handlerReset)
 	mux.Handle("/app/*", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))))
 	mux.HandleFunc("GET /healthz", handleHealthz)
+	mux.HandleFunc("/api/validate_chirp", apiCfg.handlerValidate)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
