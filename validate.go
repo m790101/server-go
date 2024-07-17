@@ -4,12 +4,16 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 )
 
 func (cfg *apiConfig) handlerValidate(w http.ResponseWriter, r *http.Request) {
 
 	type parameters struct {
 		Body string `json:"body"`
+	}
+	type responseType struct {
+		Cleaned_body string `json:"cleaned_body"`
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -24,8 +28,17 @@ func (cfg *apiConfig) handlerValidate(w http.ResponseWriter, r *http.Request) {
 		responseWithError(w, http.StatusBadRequest, "Chirp is too long")
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"valid":true}`))
+	content := params.Body
+	spliteV := strings.Split(content, " ")
+	res := ""
+	for i, word := range spliteV {
+		wordCheck := strings.ToLower(word)
+		if wordCheck == "kerfuffle" || wordCheck == "sharbert" || wordCheck == "fornax" {
+			spliteV[i] = "****"
+		}
+	}
+	res = strings.Join(spliteV, " ")
+	respondWithJSON(w, http.StatusOK, responseType{Cleaned_body: res})
 }
 
 func responseWithError(w http.ResponseWriter, code int, msg string) {
@@ -48,6 +61,7 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 		w.WriteHeader(500)
 		return
 	}
+
 	w.WriteHeader(code)
 	w.Write(dat)
 }
