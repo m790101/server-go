@@ -13,9 +13,6 @@ func (cfg *apiConfig) handlerValidate(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body string `json:"body"`
 	}
-	type responseType struct {
-		Cleaned_body string `json:"cleaned_body"`
-	}
 
 	w.Header().Set("Content-Type", "application/json")
 	decoder := json.NewDecoder(r.Body)
@@ -45,7 +42,7 @@ func (cfg *apiConfig) handlerValidate(w http.ResponseWriter, r *http.Request) {
 		responseWithError(w, http.StatusInternalServerError, "Error creating chirp")
 		return
 	}
-	respondWithJSON(w, http.StatusOK, chirp)
+	respondWithJSON(w, http.StatusCreated, chirp)
 }
 
 func responseWithError(w http.ResponseWriter, code int, msg string) {
