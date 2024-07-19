@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"server/internal/database"
 	"strings"
 )
 
@@ -38,7 +39,13 @@ func (cfg *apiConfig) handlerValidate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	res = strings.Join(spliteV, " ")
-	respondWithJSON(w, http.StatusOK, responseType{Cleaned_body: res})
+	db, _ := database.NewDB("./database.json")
+	chirp, err := db.CreateChirp(res)
+	if err != nil {
+		responseWithError(w, http.StatusInternalServerError, "Error creating chirp")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, chirp)
 }
 
 func responseWithError(w http.ResponseWriter, code int, msg string) {
