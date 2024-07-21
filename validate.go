@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-func (cfg *apiConfig) handlerValidate(w http.ResponseWriter, r *http.Request) {
+type parameters struct {
+	Body string `json:"body"`
+}
 
-	type parameters struct {
-		Body string `json:"body"`
-	}
+func (cfg *apiConfig) handlerValidate(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	decoder := json.NewDecoder(r.Body)

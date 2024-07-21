@@ -17,13 +17,14 @@ type Chirp struct {
 	Body string `json:"body"`
 }
 
-type DBStructure struct {
-	Chirps map[int]Chirp `json:"chirps"`
+type User struct {
+	Id    int    `json:"id"`
+	Email string `json:"email"`
 }
 
-type ResponseType struct {
-	Id   int    `json:"id"`
-	Body string `json:"cleaned_body"`
+type DBStructure struct {
+	Chirps map[int]Chirp `json:"chirps"`
+	Users  map[int]User  `json:"users"`
 }
 
 // NewDB creates a new database connection
@@ -63,6 +64,29 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 	return newChirp, nil
 }
 
+func (db *DB) CreateUser(body string) (User, error) {
+	dbData, err := db.loadDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+	db.mux.Lock()
+
+	newId := len(dbData.Users) + 1
+	newUser := User{
+		Id:    newId,
+		Email: body,
+	}
+
+	dbData.Users[newId] = newUser
+	db.mux.Unlock()
+	errWrite := db.writeDB(dbData)
+	if errWrite != nil {
+		log.Fatal(err)
+	}
+
+	return newUser, nil
+}
+
 // GetChirps returns all chirps in the database
 func (db *DB) GetChirps() ([]Chirp, error) {
 	db.mux.RLock()
@@ -74,6 +98,24 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 	res := []Chirp{}
 	json.Unmarshal(data, &dataDb)
 	for _, data := range dataDb.Chirps {
+		res = append(res, data)
+	}
+
+	db.mux.RUnlock()
+	return res, nil
+}
+
+// GetChirps returns all chirps in the database
+func (db *DB) GetUsers() ([]User, error) {
+	db.mux.RLock()
+	data, err := os.ReadFile(db.path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	dataDb := DBStructure{}
+	res := []User{}
+	json.Unmarshal(data, &dataDb)
+	for _, data := range dataDb.Users {
 		res = append(res, data)
 	}
 
