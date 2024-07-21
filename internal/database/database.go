@@ -35,7 +35,6 @@ func NewDB(path string) (*DB, error) {
 		path: path,
 		mux:  mux,
 	}
-
 	db.ensureDB()
 	return db, nil
 
@@ -54,7 +53,6 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 		Id:   newId,
 		Body: body,
 	}
-
 	dbData.Chirps[newId] = newChirp
 	errWrite := db.writeDB(dbData)
 	if errWrite != nil {
@@ -68,28 +66,34 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 // GetChirps returns all chirps in the database
 func (db *DB) GetChirps() ([]Chirp, error) {
 	db.mux.RLock()
-	data, err := os.ReadFile("../../database.json")
+	data, err := os.ReadFile(db.path)
 	if err != nil {
 		log.Fatal(err)
 	}
-	dataRes := []Chirp{}
-
-	json.Unmarshal(data, &dataRes)
+	dataDb := DBStructure{}
+	res := []Chirp{}
+	json.Unmarshal(data, &dataDb)
+	for _, data := range dataDb.Chirps {
+		res = append(res, data)
+	}
 
 	db.mux.RUnlock()
-	return dataRes, nil
+	return res, nil
 }
 
 // ensureDB creates a new database file if it doesn't exist
 func (db *DB) ensureDB() error {
 	db.mux.RLock()
-	_, err := os.ReadFile("../../database.json")
+	_, err := os.ReadFile(db.path)
 	if err != nil {
 		if err == os.ErrNotExist {
-			_, errCreate := os.Create("../../database.json")
+			_, errCreate := os.Create(db.path)
+			initialData := DBStructure{}
+			db.writeDB(initialData)
 			if errCreate != nil {
 				log.Fatal(err)
 			}
+
 		} else {
 			log.Fatal(err)
 		}
@@ -101,17 +105,12 @@ func (db *DB) ensureDB() error {
 // loadDB reads the database file into memory
 func (db *DB) loadDB() (DBStructure, error) {
 	db.mux.RLock()
-	data, err := os.ReadFile("../../database.json")
+	data, err := os.ReadFile(db.path)
 	if err != nil {
 		log.Fatal(err)
 	}
-	dataJson := []Chirp{}
-
-	json.Unmarshal(data, &dataJson)
 	dbData := DBStructure{}
-	for _, chirp := range dataJson {
-		dbData.Chirps[chirp.Id] = chirp
-	}
+	json.Unmarshal(data, &dbData)
 
 	db.mux.RUnlock()
 
@@ -122,15 +121,10 @@ func (db *DB) loadDB() (DBStructure, error) {
 // writeDB writes the database file to disk
 func (db *DB) writeDB(dbStructure DBStructure) error {
 	db.mux.Lock()
-	data := []Chirp{}
 
-	for _, chirp := range dbStructure.Chirps {
-		data = append(data, chirp)
-	}
+	dataJson, err := json.Marshal(dbStructure)
 
-	dataJson, err := json.Marshal(data)
-
-	errWrite := os.WriteFile("../../database.json", []byte(dataJson), 0666)
+	errWrite := os.WriteFile(db.path, []byte(dataJson), 0644)
 	if errWrite != nil {
 		log.Fatal(err)
 	}

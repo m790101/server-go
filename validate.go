@@ -36,7 +36,10 @@ func (cfg *apiConfig) handlerValidate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	res = strings.Join(spliteV, " ")
-	db, _ := database.NewDB("./database.json")
+	db, dbErr := database.NewDB("./database.json")
+	if dbErr != nil {
+		log.Fatal(dbErr)
+	}
 	chirp, err := db.CreateChirp(res)
 	if err != nil {
 		responseWithError(w, http.StatusInternalServerError, "Error creating chirp")
