@@ -2,6 +2,7 @@ package database
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
 	"sync"
@@ -52,6 +53,14 @@ func NewDB(path string) (*DB, error) {
 
 }
 
+func (db *DB) createDB() error {
+	dbStructure := DBStructure{
+		Chirps: map[int]Chirp{},
+		Users:  map[int]User{},
+	}
+	return db.writeDB(dbStructure)
+}
+
 // CreateChirp creates a new chirp and saves it to disk
 func (db *DB) CreateChirp(body string) (Chirp, error) {
 	db.mux.Lock()
@@ -75,30 +84,6 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 	return newChirp, nil
 }
 
-func (db *DB) CreateUser(body ParametersLogin) (User, error) {
-	dbData, err := db.loadDB()
-	if err != nil {
-		log.Fatal(err)
-	}
-	db.mux.Lock()
-
-	newId := len(dbData.Users) + 1
-	newUser := User{
-		Id:       newId,
-		Email:    body.Email,
-		Password: body.Password,
-	}
-
-	dbData.Users[newId] = newUser
-	db.mux.Unlock()
-	errWrite := db.writeDB(dbData)
-	if errWrite != nil {
-		log.Fatal(err)
-	}
-
-	return newUser, nil
-}
-
 // GetChirps returns all chirps in the database
 func (db *DB) GetChirps() ([]Chirp, error) {
 	db.mux.RLock()
@@ -117,43 +102,13 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 	return res, nil
 }
 
-// GetChirps returns all chirps in the database
-func (db *DB) GetUsers() ([]User, error) {
-	db.mux.RLock()
-	data, err := os.ReadFile(db.path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	dataDb := DBStructure{}
-	res := []User{}
-	json.Unmarshal(data, &dataDb)
-	for _, data := range dataDb.Users {
-		res = append(res, data)
-	}
-
-	db.mux.RUnlock()
-	return res, nil
-}
-
 // ensureDB creates a new database file if it doesn't exist
 func (db *DB) ensureDB() error {
-	db.mux.RLock()
 	_, err := os.ReadFile(db.path)
-	if err != nil {
-		if err == os.ErrNotExist {
-			_, errCreate := os.Create(db.path)
-			initialData := DBStructure{}
-			db.writeDB(initialData)
-			if errCreate != nil {
-				log.Fatal(err)
-			}
-
-		} else {
-			log.Fatal(err)
-		}
+	if errors.Is(err, os.ErrNotExist) {
+		return db.createDB()
 	}
-	db.mux.RUnlock()
-	return nil
+	return err
 }
 
 // loadDB reads the database file into memory
@@ -185,4 +140,12 @@ func (db *DB) writeDB(dbStructure DBStructure) error {
 
 	db.mux.Unlock()
 	return nil
+}
+
+func (db *DB) ResetDB() error {
+	err := os.Remove(db.path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return db.ensureDB()
 }

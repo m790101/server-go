@@ -2,11 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
+	"server/internal/auth"
 	"server/internal/database"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 type LoginRes struct {
@@ -35,12 +33,9 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&params)
 
-	hashPassword, errHash := bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
-	if errHash != nil {
-		log.Fatal(err)
-	}
+	hashPassword, err := auth.HashPassword(params.Password)
 
-	params.Password = string(hashPassword)
+	params.Password = hashPassword
 
 	if err != nil {
 		responseWithError(w, http.StatusInternalServerError, "Couldn't decode parameters")
@@ -76,7 +71,8 @@ func (cfg *apiConfig) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, user := range users {
-		err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(params.Password))
+		err := auth.CheckPasswordHash(params.Password, user.Password)
+
 		if err == nil {
 			validUser := LoginRes{
 				Id:    user.Id,
