@@ -10,6 +10,7 @@ import (
 type LoginRes struct {
 	Id    int    `json:"id"`
 	Email string `json:"email"`
+	Token string `json:"token"`
 }
 
 func (cfg *apiConfig) handleGetUsers(w http.ResponseWriter, r *http.Request) {
@@ -77,6 +78,7 @@ func (cfg *apiConfig) Login(w http.ResponseWriter, r *http.Request) {
 			validUser := LoginRes{
 				Id:    user.Id,
 				Email: user.Email,
+				Token: cfg.Secret,
 			}
 			respondWithJSON(w, http.StatusOK, validUser)
 		} else {
