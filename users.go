@@ -7,10 +7,10 @@ import (
 	"server/internal/database"
 )
 
-type LoginRes struct {
-	Id    int    `json:"id"`
-	Email string `json:"email"`
-	Token string `json:"token"`
+type User struct {
+	ID       int    `json:"id"`
+	Email    string `json:"email"`
+	Password string `json:"-"`
 }
 
 func (cfg *apiConfig) handleGetUsers(w http.ResponseWriter, r *http.Request) {
@@ -28,20 +28,27 @@ func (cfg *apiConfig) handleGetUsers(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 
+	type parametersLogin struct {
+		Password string `json:"password"`
+		Email    string `json:"email"`
+	}
+
+	type response struct {
+		User
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	db, _ := database.NewDB("./database.json")
-	params := database.ParametersLogin{}
+	params := parametersLogin{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&params)
 
 	hashPassword, err := auth.HashPassword(params.Password)
 
-	params.Password = hashPassword
-
 	if err != nil {
 		responseWithError(w, http.StatusInternalServerError, "Couldn't decode parameters")
 	}
-	users, err := db.CreateUser(params)
+	users, err := db.CreateUser(params.Email, hashPassword)
 
 	if err != nil {
 
@@ -50,40 +57,5 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusCreated, users)
-
-}
-
-func (cfg *apiConfig) Login(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	db, _ := database.NewDB("./database.json")
-	params := database.ParametersLogin{}
-	decoder := json.NewDecoder(r.Body)
-	errDecode := decoder.Decode(&params)
-
-	if errDecode != nil {
-		responseWithError(w, http.StatusInternalServerError, "Couldn't decode parameters")
-	}
-
-	users, errUsers := db.GetUsers()
-	if errUsers != nil {
-
-		responseWithError(w, http.StatusInternalServerError, "Error getting users")
-		return
-	}
-
-	for _, user := range users {
-		err := auth.CheckPasswordHash(params.Password, user.Password)
-
-		if err == nil {
-			validUser := LoginRes{
-				Id:    user.Id,
-				Email: user.Email,
-				Token: cfg.Secret,
-			}
-			respondWithJSON(w, http.StatusOK, validUser)
-		} else {
-			respondWithJSON(w, http.StatusUnauthorized, "")
-		}
-	}
 
 }

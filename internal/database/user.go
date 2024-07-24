@@ -2,11 +2,21 @@ package database
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
 )
 
-// GetChirps returns all chirps in the database
+type User struct {
+	Id       int    `json:"id"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+var ErrAlreadyExists = errors.New("already exists")
+var ErrNotExist = errors.New("not exists")
+
+// GetUsers returns all chirps in the database
 func (db *DB) GetUsers() ([]User, error) {
 	db.mux.RLock()
 	data, err := os.ReadFile(db.path)
@@ -24,7 +34,22 @@ func (db *DB) GetUsers() ([]User, error) {
 	return res, nil
 }
 
-func (db *DB) CreateUser(body ParametersLogin) (User, error) {
+// GetUser returns all chirps in the database
+func (db *DB) GetUser(id int) (User, error) {
+	db.mux.RLock()
+	dBStructure, err := db.loadDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+	res, ok := dBStructure.Users[id]
+	if !ok {
+		return User{}, ErrNotExist
+	}
+	db.mux.RUnlock()
+	return res, nil
+}
+
+func (db *DB) CreateUser(email string, hashPassword string) (User, error) {
 	dbData, err := db.loadDB()
 	if err != nil {
 		log.Fatal(err)
@@ -34,8 +59,8 @@ func (db *DB) CreateUser(body ParametersLogin) (User, error) {
 	newId := len(dbData.Users) + 1
 	newUser := User{
 		Id:       newId,
-		Email:    body.Email,
-		Password: body.Password,
+		Email:    email,
+		Password: hashPassword,
 	}
 
 	dbData.Users[newId] = newUser
