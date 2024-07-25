@@ -72,3 +72,27 @@ func (db *DB) CreateUser(email string, hashPassword string) (User, error) {
 
 	return newUser, nil
 }
+
+func (db *DB) UpdateUser(id int, email string, hashPassword string) (User, error) {
+	dBStructure, err := db.loadDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+	userModified, ok := dBStructure.Users[id]
+	if !ok {
+		return User{}, ErrNotExist
+	}
+
+	userModified.Email = email
+
+	userModified.Password = hashPassword
+
+	dBStructure.Users[id] = userModified
+
+	errWrite := db.writeDB(dBStructure)
+	if errWrite != nil {
+		log.Fatal(err)
+	}
+
+	return userModified, nil
+}

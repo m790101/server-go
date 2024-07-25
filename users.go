@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"server/internal/auth"
 	"server/internal/database"
+	"strconv"
 )
 
 type User struct {
@@ -33,10 +34,6 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 		Email    string `json:"email"`
 	}
 
-	type response struct {
-		User
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	db, _ := database.NewDB("./database.json")
 	params := parametersLogin{}
@@ -57,5 +54,46 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusCreated, users)
+
+}
+
+func (cfg *apiConfig) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
+
+	type parametersLogin struct {
+		Password string `json:"password"`
+		Email    string `json:"email"`
+	}
+
+	params := parametersLogin{}
+	decoder := json.NewDecoder(r.Body)
+	errDecode := decoder.Decode(&params)
+
+	if errDecode != nil {
+		responseWithError(w, http.StatusInternalServerError, "Error decode")
+	}
+
+	hashPassword, _ := auth.HashPassword(params.Password)
+
+	w.Header().Set("Content-Type", "application/json")
+
+	token, err := GetBearerToken(r.Header)
+	if err != nil {
+		respondWithJSON(w, http.StatusUnauthorized, "Couldn't find JWT")
+		return
+	}
+
+	id, err := ValidateJWT(token, cfg.Secret)
+
+	if err != nil {
+		respondWithJSON(w, http.StatusUnauthorized, "Couldn't validate JWT")
+		return
+	}
+
+	idNum, _ := strconv.Atoi(id)
+	user, _ := cfg.Db.GetUser(idNum)
+
+	userModified, _ := cfg.Db.UpdateUser(user.Id, params.Email, hashPassword)
+
+	respondWithJSON(w, http.StatusOK, userModified)
 
 }

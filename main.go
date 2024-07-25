@@ -2,14 +2,11 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"server/internal/database"
-	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 )
 
@@ -25,30 +22,13 @@ func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Hits reset to 0"))
 }
 
-type JwtClaims struct {
-	jwt.RegisteredClaims
-}
-
 func main() {
 
 	godotenv.Load()
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 
-	claims := JwtClaims{
-		jwt.RegisteredClaims{
-			// A usual scenario is to set the expiration time relative to the current time
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "chirpy",
-			Subject:   "1",
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	ss, err := token.SignedString([]byte(jwtSecret))
-
-	fmt.Println(ss, err)
+	// fmt.Println(ss, err)
 
 	db, err := database.NewDB("database.json")
 	if err != nil {
@@ -67,13 +47,14 @@ func main() {
 	port := "8080"
 	mux := http.NewServeMux()
 	filepathRoot := "."
-	apiCfg := apiConfig{fileserverHits: 0, Db: db, Secret: ss}
+	apiCfg := apiConfig{fileserverHits: 0, Db: db, Secret: jwtSecret}
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("/reset", apiCfg.handlerReset)
 	mux.Handle("/app/*", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))))
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handleGetOne)
 	mux.HandleFunc("GET /api/chirps", apiCfg.handleGetChirps)
 	mux.HandleFunc("POST /api/users", apiCfg.createUser)
+	mux.HandleFunc("PUT /api/users", apiCfg.handleUpdateUser)
 	mux.HandleFunc("POST /api/login", apiCfg.Login)
 	mux.HandleFunc("GET /api/users", apiCfg.handleGetUsers)
 	mux.HandleFunc("GET /healthz", handleHealthz)
