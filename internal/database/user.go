@@ -8,10 +8,9 @@ import (
 )
 
 type User struct {
-	Id           int    `json:"id"`
-	Email        string `json:"email"`
-	Password     string `json:"password"`
-	RefreshToken string `json:"refresh_token"`
+	Id       int    `json:"id"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 var ErrAlreadyExists = errors.New("already exists")
@@ -59,10 +58,9 @@ func (db *DB) CreateUser(email string, hashPassword string, RefreshToken string)
 
 	newId := len(dbData.Users) + 1
 	newUser := User{
-		Id:           newId,
-		Email:        email,
-		Password:     hashPassword,
-		RefreshToken: RefreshToken,
+		Id:       newId,
+		Email:    email,
+		Password: hashPassword,
 	}
 
 	dbData.Users[newId] = newUser
