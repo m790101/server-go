@@ -40,12 +40,17 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&params)
 
-	hashPassword, err := auth.HashPassword(params.Password)
-
 	if err != nil {
 		responseWithError(w, http.StatusInternalServerError, "Couldn't decode parameters")
 	}
-	users, err := db.CreateUser(params.Email, hashPassword)
+
+	hashPassword, err := auth.HashPassword(params.Password)
+	RefreshToken, _ := auth.GenerateRefreshToken()
+
+	if err != nil {
+		responseWithError(w, http.StatusInternalServerError, "Couldn't hash password")
+	}
+	users, err := db.CreateUser(params.Email, hashPassword, RefreshToken)
 
 	if err != nil {
 

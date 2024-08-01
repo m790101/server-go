@@ -16,9 +16,10 @@ func (cfg *apiConfig) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type LoginRes struct {
-		Id    int    `json:"id"`
-		Email string `json:"email"`
-		Token string `json:"token"`
+		Id           int    `json:"id"`
+		Email        string `json:"email"`
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -53,11 +54,19 @@ func (cfg *apiConfig) Login(w http.ResponseWriter, r *http.Request) {
 				responseWithError(w, http.StatusInternalServerError, "Couldn't create JWT")
 				return
 			}
+			refreshToken, _ := auth.GenerateRefreshToken()
+
+			err = cfg.Db.SaveRefreshToken(user.Id, refreshToken)
+			if err != nil {
+				respondWithJSON(w, http.StatusInternalServerError, "Couldn't save refresh token")
+				return
+			}
 
 			validUser := LoginRes{
-				Id:    user.Id,
-				Email: user.Email,
-				Token: token,
+				Id:           user.Id,
+				Email:        user.Email,
+				Token:        token,
+				RefreshToken: refreshToken,
 			}
 			respondWithJSON(w, http.StatusOK, validUser)
 		} else {
