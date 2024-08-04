@@ -53,12 +53,14 @@ func main() {
 	mux.Handle("/app/*", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))))
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handleGetOne)
 	mux.HandleFunc("GET /api/chirps", apiCfg.handleGetChirps)
+	mux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.handleDeleteOne)
+
 	mux.HandleFunc("POST /api/users", apiCfg.createUser)
 	mux.HandleFunc("PUT /api/users", apiCfg.handleUpdateUser)
 	mux.HandleFunc("POST /api/login", apiCfg.Login)
 	mux.HandleFunc("GET /api/users", apiCfg.handleGetUsers)
 	mux.HandleFunc("GET /healthz", handleHealthz)
-	mux.HandleFunc("POST /api/chirps", apiCfg.handlerValidate)
 	mux.HandleFunc("POST /api/refresh", apiCfg.handleRefresh)
 	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevoke)
 

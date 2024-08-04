@@ -69,9 +69,9 @@ func (cfg *apiConfig) Login(w http.ResponseWriter, r *http.Request) {
 				RefreshToken: refreshToken,
 			}
 			respondWithJSON(w, http.StatusOK, validUser)
-		} else {
-			respondWithJSON(w, http.StatusUnauthorized, "")
+			return
 		}
 	}
+	respondWithJSON(w, http.StatusUnauthorized, "")
 
 }

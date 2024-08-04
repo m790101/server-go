@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"server/internal/database"
+	"strconv"
 	"strings"
 )
 
@@ -12,9 +13,10 @@ type parameters struct {
 	Body string `json:"body"`
 }
 
-func (cfg *apiConfig) handlerValidate(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
+
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
 	err := decoder.Decode(&params)
@@ -40,7 +42,13 @@ func (cfg *apiConfig) handlerValidate(w http.ResponseWriter, r *http.Request) {
 	if dbErr != nil {
 		log.Fatal(dbErr)
 	}
-	chirp, err := db.CreateChirp(res)
+
+	// get jwt token
+	token, _ := GetBearerToken(r.Header)
+	userIDString, _ := ValidateJWT(token, cfg.Secret)
+	id, _ := strconv.Atoi(userIDString)
+
+	chirp, err := db.CreateChirp(res, id)
 	if err != nil {
 		responseWithError(w, http.StatusInternalServerError, "Error creating chirp")
 		return
