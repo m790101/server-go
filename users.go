@@ -97,7 +97,7 @@ func (cfg *apiConfig) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	idNum, _ := strconv.Atoi(id)
 	user, _ := cfg.Db.GetUser(idNum)
 
-	userModified, _ := cfg.Db.UpdateUser(user.Id, params.Email, hashPassword)
+	userModified, _ := cfg.Db.UpdateUser(user.Id, params.Email, hashPassword, user.IsChirpyRed)
 
 	respondWithJSON(w, http.StatusOK, userModified)
 

@@ -56,7 +56,7 @@ func (db *DB) UserForRefreshToken(token string) (User, error) {
 	if refreshToken.ExpiresAt.Before(time.Now()) {
 		return User{}, ErrNotExist
 	}
-	// log.Fatal("token", refreshToken.UserID)
+
 	user, err := db.GetUser(refreshToken.UserID)
 	if err != nil {
 		return User{}, err
